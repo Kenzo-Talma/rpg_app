@@ -51,8 +51,8 @@ def create_table(
     else:
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ({info})")
 
-    cursor.execute(f"SELECT * FROM {table_name}")
-    print(cursor.fetchall(), type(cursor.fetchall()))
+    # cursor.execute(f"SELECT * FROM {table_name}")
+    # print(cursor.fetchall(), type(cursor.fetchall()))
 
     # commit and close connection
     connector.commit()
