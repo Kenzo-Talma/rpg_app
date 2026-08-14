@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                               QFrame, QLineEdit, QScrollArea, QSpinBox, 
-                              QPushButton, QDialog, QGridLayout)
+                              QPushButton, QDialog, QMenuBar, QToolBar, QToolBox, QMenu)
 from PySide6.QtCore import Qt
-#from PySide6.QtGui import QColor
+from PySide6.QtGui import QAction
 from typing import Callable
 
 from core.entity_lib import playable_character
@@ -13,18 +13,28 @@ class CharacterSheet(QWidget, playable_character):
         super().__init__()
         self.edit_mode :bool = False
         self.player_mode :bool = True
-        self.init_ui()
 
-    def init_ui(self):
+        self.mode_list :dict = ["edit", "player", "read"]
+
+        # create main layout and add it to the class widget
+        self.main_layout :QVBoxLayout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+
+        # create main menubar
+        self.menu_bar = QMenuBar()
+        self.main_layout.setMenuBar(self.menu_bar)
+
+        self.make_ui()
+
+        # make switch ui
+        self.switch_mode_ui()
+
+    def make_ui(self):
         """
         initialise character sheet ui
 
         :param self.edit_mode: (bool) create the ui in edit mode, default False
         """
-
-        # create main layout and add it to the class widget
-        self.main_layout :Callable = QVBoxLayout()
-        self.setLayout(self.main_layout)
 
         # get test stat dict
         stat_dict :dict = stat_test()
@@ -37,11 +47,14 @@ class CharacterSheet(QWidget, playable_character):
         # make identity ui
         self.identity_ui(
             identity_dict)
-        self.main_layout.addWidget(self.identity_widget, alignment=Qt.AlignCenter)
+        self.main_layout.addWidget(
+            self.identity_widget, alignment=Qt.AlignCenter)
 
         # second row
+        self.second_row_widget :QWidget = QWidget()
+        self.main_layout.addWidget(self.second_row_widget)
         self.second_row_layout :QHBoxLayout = QHBoxLayout()
-        self.main_layout.addLayout(self.second_row_layout)
+        self.second_row_widget.setLayout(self.second_row_layout)
 
         # make fight
         self.fight_ui(fight_dict)
@@ -56,8 +69,10 @@ class CharacterSheet(QWidget, playable_character):
         self.second_row_layout.addWidget(self.competence_sheet_widget)
 
         # third row
+        self.third_row_widget :QWidget = QWidget()
+        self.main_layout.addWidget(self.third_row_widget)
         self.third_row_layout :QHBoxLayout = QHBoxLayout()
-        self.main_layout.addLayout(self.third_row_layout)
+        self.third_row_widget.setLayout(self.third_row_layout)
 
         # make equipement sheet ui
         self.equipment_sheet_ui(equipment_dict)
@@ -296,15 +311,16 @@ class CharacterSheet(QWidget, playable_character):
         self.equipment_sheet_layout.addWidget(self.equipment_scroll_widget)
 
         # make add button
-        add_button_widget :QPushButton = QPushButton("add equipment")
-        self.equipment_scroll_layout.addWidget(
-            add_button_widget, alignment=Qt.AlignCenter)
-        self.equipment_scroll_layout.setAlignment(
-            add_button_widget, Qt.AlignTop)
-        add_button_widget.clicked.connect(self.make_add_equimpent(
-            "name",
-            "damage",
-            "infos"))
+        if self.edit_mode or self.player_mode:
+            add_button_widget :QPushButton = QPushButton("add equipment")
+            self.equipment_scroll_layout.addWidget(
+                add_button_widget, alignment=Qt.AlignCenter)
+            self.equipment_scroll_layout.setAlignment(
+                add_button_widget, Qt.AlignTop)
+            add_button_widget.clicked.connect(self.make_add_equimpent(
+                "name",
+                "damage",
+                "infos"))
 
         # make equipment rows
         for equipment in equipment_dict:
@@ -337,8 +353,8 @@ class CharacterSheet(QWidget, playable_character):
         # name label
         if not name:
             return
-        equipment_name :QLabel = QLabel(name, alignment=Qt.AlignLeft)
-        equipment_layout.addWidget(equipment_name)
+        equipment_name :QLabel = QLabel(name)
+        equipment_layout.addWidget(equipment_name, alignment=Qt.AlignLeft)
 
         # info lalel if it exist
         if info_list:
@@ -353,17 +369,16 @@ class CharacterSheet(QWidget, playable_character):
                 ", ".join(clean_list), alignment=Qt.AlignRight)
             equipment_layout.addWidget(equipment_info)
 
-        # set widget size
-        equipment_widget.setFixedHeight(
-            equipment_widget.sizeHint().height())
-
         # remove button
-        if self.edit_mode or self.player_mode:
+        if self.edit_mode:
             remove_equipment :QPushButton = QPushButton("X")
             remove_equipment.setFixedWidth(50)
             equipment_layout.addWidget(remove_equipment, Qt.AlignLeft)
             remove_equipment.clicked.connect(self.make_delete_func(equipment_widget))
-            
+
+        # set widget size
+        equipment_widget.setFixedHeight(
+            equipment_widget.sizeHint().height())
 
         # return widget
         return equipment_widget
@@ -470,8 +485,13 @@ class CharacterSheet(QWidget, playable_character):
             # make add button for edit mode
             if self.edit_mode:
                 level_add_button :QPushButton = QPushButton("add")
-                level_add_button.clicked.connect(self.make_add_spell())
-                level_scroll_Layout.add_widget(level_add_button)
+                level_add_button.clicked.connect(
+                    self.make_add_spell(
+                        level_scroll_Layout,
+                        "effect",
+                        "description"
+                    ))
+                level_scroll_Layout.addWidget(level_add_button)
 
             # add aleardy known spells 
             for spell in level_spell_dict:
@@ -690,16 +710,68 @@ class CharacterSheet(QWidget, playable_character):
         return delete_func
 
 
+    # switch mode
+    def switch_mode_ui(self):
+        """
+        make switch menu bar to switch modes
+        """
+        # create main widget
+        if self.edit_mode:
+            current_mode = "edit"
+        elif self.player_mode:
+            current_mode = "player"
+        else:
+            current_mode = "read"
+        
+        self.switch_mode_widget :QPushButton = QPushButton(current_mode)
+
+        # create menu
+        self.switch_mode_menu :QMenu = QMenu("mode")
+        self.menu_bar.addMenu(self.switch_mode_menu)
+
+        # create menu option
+        for mode in self.mode_list:
+            self.switch_mode_menu.addAction(mode, self.make_switch_action(mode))
+            # self.switch_mode_menu.addSeparator()
+
+
+    def make_switch_action(self, mode:str) -> Callable:
+        """
+        make and return a function to switch mode
+
+        :param mode: mode to switch to
+        :return switch_mode: function to switch mode
+        """
+        def switch_mode():
+            if mode == "edit":
+                self.edit_mode = True
+                self.player_mode = False
+            elif mode == "player":
+                self.edit_mode = False
+                self.player_mode = True
+            else:
+                self.edit_mode = False
+                self.player_mode = False
+
+            for i in range(self.main_layout.count()):
+                self.main_layout.itemAt(i).widget().deleteLater()
+
+            self.make_ui()
+            self.resize(self.sizeHint())
+
+        return switch_mode
+
+
 class AddInfo(QDialog):
     def __init__(self, parent :QWidget, value_dict :dict):
         super().__init__(parent=parent)
 
         self.value_dict = value_dict
 
-        self.init_ui()
+        self.make_ui()
 
 
-    def init_ui(self):
+    def make_ui(self):
         main_layout :QVBoxLayout = QVBoxLayout()
         self.setLayout(main_layout)
 
