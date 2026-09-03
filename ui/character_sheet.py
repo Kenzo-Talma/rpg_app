@@ -1,15 +1,15 @@
 from PySide6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                               QFrame, QLineEdit, QScrollArea, QSpinBox, 
-                              QPushButton, QDialog, QMenuBar, QToolBar, QToolBox, QMenu)
+                              QPushButton, QDialog, QMenuBar, QMenu)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
 from typing import Callable
 
-from core.entity_lib import playable_character
+from core.entity_lib import PlayableCharacter
 
 
-class CharacterSheet(QWidget, playable_character):
+class CharacterSheet(QWidget):
     def __init__(self):
+        self.character_id :int = int()
         super().__init__()
         self.edit_mode :bool = False
         self.player_mode :bool = True
@@ -28,6 +28,14 @@ class CharacterSheet(QWidget, playable_character):
 
         # make switch ui
         self.switch_mode_ui()
+
+
+    def open_character_sheet(self):
+        if self.character_id:
+            self.character :PlayableCharacter = PlayableCharacter(
+                self.character_id)
+            self.character.get_data
+
 
     def make_ui(self):
         """
@@ -176,7 +184,10 @@ class CharacterSheet(QWidget, playable_character):
             stat_layout.addWidget(stat_name, alignment=Qt.AlignCenter)
 
             # stat info
-            if self.edit_mode or self.player_mode:
+            if self.edit_mode:
+                stat_label :QSpinBox = QSpinBox()
+                stat_label.setValue(fight_dict[stat])
+            elif stat in ["HP", "temp HP"] and self.player_mode:
                 stat_label :QSpinBox = QSpinBox()
                 stat_label.setValue(fight_dict[stat])
             else:
