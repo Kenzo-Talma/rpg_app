@@ -14,7 +14,7 @@ def connect_database(file_name :str):
     current_path :str = __file__.rpartition("\\")[0]
 
     # connect to database and create cursor
-    connector = sqlite3.connect(f"{current_path}\\{file_name}_entity.db")
+    connector = sqlite3.connect(f"{current_path}\\{file_name}_BDD.db")
     cursor = connector.cursor()
 
     # return conection and cursor
@@ -112,7 +112,6 @@ def return_single_data(
     sql = (f"SELECT {column_name} "
         f"FROM {table_name} "
         f"WHERE {row_id[0]} == ?")
-    print(sql)
 
     cursor.execute(sql, str(row_id[1]))
     value :list = cursor.fetchall()
@@ -121,7 +120,7 @@ def return_single_data(
     connector.close()
 
     # return value
-    return value[0]
+    return value[0][0]
 
 
 def add_row(file_name :str, table_name : str, entity :dict):

@@ -9,12 +9,13 @@ from core.entity_lib import PlayableCharacter
 
 class CharacterSheet(QWidget):
     def __init__(self):
-        self.character_id :int = int()
+        self.character_id :int = 0
+        self.character :PlayableCharacter = PlayableCharacter()
+        self.character.open_character(0)
+
         super().__init__()
         self.edit_mode :bool = False
         self.player_mode :bool = True
-
-        self.mode_list :dict = ["edit", "player", "read"]
 
         # create main layout and add it to the class widget
         self.main_layout :QVBoxLayout = QVBoxLayout()
@@ -31,10 +32,8 @@ class CharacterSheet(QWidget):
 
 
     def open_character_sheet(self):
-        if self.character_id:
-            self.character :PlayableCharacter = PlayableCharacter(
-                self.character_id)
-            self.character.get_data
+        self.character :PlayableCharacter = PlayableCharacter()
+        self.character.open_character(self.character_id)
 
 
     def make_ui(self):
@@ -45,18 +44,27 @@ class CharacterSheet(QWidget):
         """
 
         # get test stat dict
-        stat_dict :dict = stat_test()
+        """stat_dict :dict = stat_test()
         identity_dict :dict = id_test()
         fight_dict :dict = fight_test()
         competence_dict :dict = competences_test()
         equipment_dict :dict = equipment_test()
-        spell_dict :dict = spell_test()
+        money_dict :dict = dict(equipment_dict["money"])
+        del equipment_dict["money"]
+        spell_dict :dict = spell_test()"""
 
         # make identity ui
-        self.identity_ui(
-            identity_dict)
-        self.main_layout.addWidget(
-            self.identity_widget, alignment=Qt.AlignCenter)
+        identity_widget = IdentityWidget(
+            self.character.entity_name,
+            {
+                "specie": self.character.character_specie,
+                "class": self.character.character_class,
+                "size": self.character.size,
+                "alignment": self.character.alignment
+            },
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.main_layout.addWidget(identity_widget, alignment=Qt.AlignCenter)
 
         # second row
         self.second_row_widget :QWidget = QWidget()
@@ -65,16 +73,32 @@ class CharacterSheet(QWidget):
         self.second_row_widget.setLayout(self.second_row_layout)
 
         # make fight
-        self.fight_ui(fight_dict)
-        self.second_row_layout.addWidget(self.fight_widget)
+        fight_widget :QWidget = FightWidget(
+            {
+                "HP": self.character.entity_HP,
+                "temp HP": self.character.temp_HP,
+                "initiative": self.character.initiative,
+                "speed": self.character.speed,
+                "class armor": self.character.class_armor,
+                "inspiration": self.character.inspiration
+            },
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.second_row_layout.addWidget(fight_widget)
 
         # make stat sheet ui
-        self.stat_sheet_ui(stat_dict)
-        self.second_row_layout.addWidget(self.stat_sheet_widget)
+        stat_sheet_widget :QWidget = StatWidget(
+            self.character.stat_dict,
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.second_row_layout.addWidget(stat_sheet_widget)
 
         # make competences sheet ui
-        self.competence_sheet_ui(competence_dict)
-        self.second_row_layout.addWidget(self.competence_sheet_widget)
+        competence_sheet_widget :QWidget = CompetenceWidget(
+            self.character.competences,
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.second_row_layout.addWidget(competence_sheet_widget)
 
         # third row
         self.third_row_widget :QWidget = QWidget()
@@ -83,18 +107,100 @@ class CharacterSheet(QWidget):
         self.third_row_widget.setLayout(self.third_row_layout)
 
         # make equipement sheet ui
-        self.equipment_sheet_ui(equipment_dict)
-        self.third_row_layout.addWidget(self.equipment_sheet_widget)
+        equipment_sheet_widget :QWidget = EquipementWidget(
+            self.character.competences,
+            self.character.money,
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.third_row_layout.addWidget(equipment_sheet_widget)
 
         # make spell sheet ui
-        self.spell_sheet_ui(spell_dict)
-        self.third_row_layout.addWidget(self.spell_sheet_widget)
+        if not self.character.spells:
+            self.character.spells = dict()
+            for i in range(10):
+                self.character.spells[f"lv{i}"] = dict()
+
+        spell_sheet_widget :QWidget = SpellWidget(
+            self.character.spells,
+            edit_mode=self.edit_mode,
+            player_mode=self.player_mode)
+        self.third_row_layout.addWidget(spell_sheet_widget)
 
 
-    # identity function
-    def identity_ui(
-            self, 
-            identity_dict :dict):
+    # switch mode
+    def switch_mode_ui(self):
+        """
+        make switch menu bar to switch modes
+        """
+        # create main widget
+        if self.edit_mode:
+            current_mode = "edit"
+        elif self.player_mode:
+            current_mode = "player"
+        else:
+            current_mode = "read"
+        
+        self.switch_mode_widget :QPushButton = QPushButton(current_mode)
+
+        # create menu
+        self.switch_mode_menu :QMenu = QMenu("mode")
+        self.menu_bar.addMenu(self.switch_mode_menu)
+
+        # create menu option
+        for mode in ["edit", "player", "read"]:
+            self.switch_mode_menu.addAction(mode, self.make_switch_action(mode))
+            # self.switch_mode_menu.addSeparator()
+
+
+    def make_switch_action(self, mode:str) -> Callable:
+        """
+        make and return a function to switch mode
+
+        :param mode: mode to switch to
+        :return switch_mode: function to switch mode
+        """
+        def switch_mode():
+            if mode == "edit":
+                self.edit_mode = True
+                self.player_mode = False
+            elif mode == "player":
+                self.edit_mode = False
+                self.player_mode = True
+            else:
+                self.edit_mode = False
+                self.player_mode = False
+
+            for i in range(self.main_layout.count()):
+                self.main_layout.itemAt(i).widget().deleteLater()
+
+            self.make_ui()
+            self.resize(self.sizeHint())
+
+        return switch_mode
+
+
+class IdentityWidget(QFrame):
+    def __init__(
+            self,
+            name :str,
+            identity_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+
+        self.name = name
+        self.identity_dict = identity_dict
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.setContentsMargins(5, 5, 5, 5)
+        self.setFrameStyle(2)
+
+        self.identity_ui()
+        self.setLayout(self.identity_layout)
+
+
+    def identity_ui(self):
         """
         make character id sheet using given stat dictionnary
 
@@ -102,42 +208,59 @@ class CharacterSheet(QWidget):
         :param self.edit_mode: (bool) create the ui in edit mode, default False
         """
         # main widget and layout
-        self.identity_widget , identity_layout = self.make_frame()
+        self.identity_layout = make_frame()
 
         if self.edit_mode:
             # name label
-            name_label :QLineEdit = QLineEdit(identity_dict["name"])
-            identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
+            name_label :QLineEdit = QLineEdit(self.name)
+            self.identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
 
             # other data line edit in edit mode
             main_info_widget :QWidget = QWidget()
-            identity_layout.addWidget(main_info_widget)
+            self.identity_layout.addWidget(main_info_widget)
 
             main_info_layout :QHBoxLayout = QHBoxLayout()
             main_info_widget.setLayout(main_info_layout)
 
-            for n, info in enumerate(identity_dict):
-                if not n == 0:
-                    info_line_edit :QLineEdit = QLineEdit(identity_dict[info])
-                    main_info_layout.addWidget(info_line_edit)
+            for info in self.identity_dict:
+                info_line_edit :QLineEdit = QLineEdit(info)
+                main_info_layout.addWidget(info_line_edit)
         else:
             # name label
-            name_label :QLabel = QLabel(identity_dict["name"])
+            name_label :QLabel = QLabel(self.name)
 
             # info label in non edit mode and read mode
             info_list :list = [
-                identity_dict[key] for n, key in enumerate(identity_dict) 
+                self.identity_dict[key] 
+                for n, key in enumerate(self.identity_dict) 
                 if not n==0
             ]
             info_str :str = ", ".join(info_list)
             main_info_label :QLabel = QLabel(info_str)
 
             # add name and infos to identity layout
-            identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
-            identity_layout.addWidget(main_info_label, alignment=Qt.AlignCenter)
+            self.identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
+            self.identity_layout.addWidget(main_info_label, alignment=Qt.AlignCenter)
 
 
-    # fight fuction
+class FightWidget(QFrame):
+    def __init__(
+            self,
+            identity_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+        
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.setContentsMargins(5, 5, 5, 5)
+        self.setFrameStyle(2)
+
+        self.fight_ui(identity_dict)
+        self.setLayout(self.main_fight_layout)
+
+
     def fight_ui(
             self, 
             fight_dict :dict):
@@ -149,12 +272,12 @@ class CharacterSheet(QWidget):
         :param self.player_mode: (bool) create the ui in player mode, default True
         """
         # main widget and layout
-        self.fight_widget, main_fight_layout = \
-            self.make_frame(name="fight_info")
+        self.main_fight_layout = \
+            make_frame(name="fight_info")
         
         # fight stats widget
         fight_stat_widget :QWidget = QWidget()
-        main_fight_layout.addWidget(fight_stat_widget, alignment=Qt.AlignCenter)
+        self.main_fight_layout.addWidget(fight_stat_widget, alignment=Qt.AlignCenter)
         fight_stat_layout :QVBoxLayout = QVBoxLayout()
         fight_stat_layout.setContentsMargins(0, 0, 0, 0)
         fight_stat_widget.setLayout(fight_stat_layout)
@@ -180,6 +303,7 @@ class CharacterSheet(QWidget):
             stat_widget.setLayout(stat_layout)
 
             # stat name
+            print(stat)
             stat_name :QLabel = QLabel(stat)
             stat_layout.addWidget(stat_name, alignment=Qt.AlignCenter)
 
@@ -195,10 +319,27 @@ class CharacterSheet(QWidget):
             stat_layout.addWidget(stat_label, alignment=Qt.AlignCenter)
 
 
-    # stat function
+class StatWidget(QFrame):
+    def __init__(
+            self,
+            stat_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+        
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.setContentsMargins(5, 5, 5, 5)
+        self.setFrameStyle(2)
+
+        self.stat_sheet_ui(stat_dict)
+        self.setLayout(self.stat_name_layout)
+
+
     def stat_sheet_ui(
-            self, 
-            stat_dict :dict):
+        self, 
+        stat_dict :dict):
         """
         make stat sheet using given stat dictionnary
 
@@ -207,13 +348,13 @@ class CharacterSheet(QWidget):
         :param self.player_mode: (bool) create the ui in player mode, default True
         """
         # create main widget, layout and label
-        self.stat_sheet_widget, stat_name_layout = \
-            self.make_frame(name="stat")
+        self.stat_name_layout = make_frame(name="stat")
 
         stat_sheet_widget :QWidget = QWidget()
+        self.stat_name_layout.addWidget(stat_sheet_widget)
+
         self.stat_sheet_layout :QVBoxLayout = QVBoxLayout()
         stat_sheet_widget.setLayout(self.stat_sheet_layout)
-        stat_name_layout.addWidget(stat_sheet_widget)
         
         # create stat layout for all stats
         for stat in stat_dict:
@@ -238,7 +379,24 @@ class CharacterSheet(QWidget):
             self.stat_sheet_layout.addWidget(stat_widget)
 
 
-    # competence function
+class CompetenceWidget(QFrame):
+    def __init__(
+            self,
+            competence_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+        
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.setContentsMargins(5, 5, 5, 5)
+        self.setFrameStyle(2)
+
+        self.competence_sheet_ui(competence_dict)
+        self.setLayout(self.competence_main_layout)
+
+
     def competence_sheet_ui(
             self, 
             competence_dict :dict):
@@ -250,8 +408,8 @@ class CharacterSheet(QWidget):
         :param self.player_mode: (bool) create the ui in player mode, default True
         """
         # create main widget, layout and label
-        self.competence_sheet_widget, competence_scroll_layout = \
-            self.make_scroll_area(name="competences")
+        self.competence_main_layout, competence_scroll_layout = \
+            make_scroll_area(name="competences")
 
         for competence in competence_dict:
             # competence widget and layout
@@ -279,10 +437,27 @@ class CharacterSheet(QWidget):
                 competence_widget.sizeHint().height())
 
 
+class EquipementWidget(QFrame):
+    def __init__(
+            self,
+            equipement_dict :dict,
+            money_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+        
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.equipment_sheet_ui(equipement_dict, money_dict)
+        self.setLayout(self.equipment_sheet_layout)
+
+
     # equipment functions
     def equipment_sheet_ui(
             self, 
-            equipment_dict :dict):
+            equipment_dict :dict,
+            money_dict :dict):
         """
         make equipment sheet using given equipment dictionnary
     
@@ -291,9 +466,7 @@ class CharacterSheet(QWidget):
         :param self.player_mode: (bool) create the ui in player mode, default True
         """
         # create main widget and layout
-        self.equipment_sheet_widget :QWidget = QWidget()
         self.equipment_sheet_layout :QVBoxLayout = QVBoxLayout()
-        self.equipment_sheet_widget.setLayout(self.equipment_sheet_layout)
         self.equipment_sheet_layout.setContentsMargins(0, 0, 0, 0)
 
         # create money ui
@@ -304,7 +477,7 @@ class CharacterSheet(QWidget):
         self.money_sheet_widget.setLayout(self.money_sheet_layout)
         self.money_sheet_widget.setFrameStyle(2)
 
-        for currency in equipment_dict["money"]:
+        for currency in money_dict:
             currency_widget :QWidget = QWidget()
             self.money_sheet_layout.addWidget(currency_widget)
             currency_layout :QVBoxLayout = QVBoxLayout()
@@ -313,13 +486,16 @@ class CharacterSheet(QWidget):
             currency_name :QLabel = QLabel(currency)
             currency_layout.addWidget(currency_name)
             currency_value :QLabel = QLabel(
-                str(equipment_dict["money"][currency]))
+                str(money_dict[currency]))
             currency_layout.addWidget(currency_value)
 
         # create scroll area
-        self.equipment_scroll_widget, self.equipment_scroll_layout = \
-            self.make_scroll_area("equipment")
-        self.equipment_sheet_layout.addWidget(self.equipment_scroll_widget)
+        equipment_scroll_widget :QWidget = QWidget()
+        self.equipment_sheet_layout.addWidget(equipment_scroll_widget)
+
+        equipment_main_layout, self.equipment_scroll_layout = \
+            make_scroll_area("equipment")
+        equipment_scroll_widget.setLayout(equipment_main_layout)
 
         # make add button
         if self.edit_mode or self.player_mode:
@@ -335,8 +511,6 @@ class CharacterSheet(QWidget):
 
         # make equipment rows
         for equipment in equipment_dict:
-            if equipment == "money":
-                continue
 
             equipment_widget :QWidget = self.make_equipment_row(
                 equipment, 
@@ -385,7 +559,7 @@ class CharacterSheet(QWidget):
             remove_equipment :QPushButton = QPushButton("X")
             remove_equipment.setFixedWidth(50)
             equipment_layout.addWidget(remove_equipment, Qt.AlignLeft)
-            remove_equipment.clicked.connect(self.make_delete_func(equipment_widget))
+            remove_equipment.clicked.connect(make_delete_func(equipment_widget))
 
         # set widget size
         equipment_widget.setFixedHeight(
@@ -427,6 +601,24 @@ class CharacterSheet(QWidget):
         return add_equimpent
 
 
+class SpellWidget(QFrame):
+    def __init__(
+            self, 
+            spell_dict :dict,
+            edit_mode :bool = False,
+            player_mode :bool = True):
+        super().__init__()
+
+        self.edit_mode :bool = edit_mode
+        self.player_mode :bool = player_mode
+
+        self.setContentsMargins(5, 5, 5, 5)
+        self.setFrameStyle(2)
+
+        self.spell_sheet_ui(spell_dict)
+        self.setLayout(self.spell_sheet_layout)
+
+    
     # spell function
     def spell_sheet_ui(
             self, 
@@ -439,11 +631,7 @@ class CharacterSheet(QWidget):
         :param self.player_mode: (bool) create the ui in player mode, default True
         """
         # make main widget and layout
-        self.spell_sheet_widget :QFrame = QFrame()
-        self.spell_sheet_widget.setFrameStyle(2)
-        self.spell_sheet_widget.setContentsMargins(5, 5, 5, 5)
         self.spell_sheet_layout :QVBoxLayout = QVBoxLayout()
-        self.spell_sheet_widget.setLayout(self.spell_sheet_layout)
 
         # sheet title
         title :QLabel= QLabel("spell")
@@ -477,18 +665,15 @@ class CharacterSheet(QWidget):
 
                 level_main_widget.setFrameStyle(2)
                 level_main_Layout :QHBoxLayout = QHBoxLayout()
-                level_main_widget.setLayout(level_main_Layout)
+                level_main_widget.setLayout(level_main_Layout)                
 
                 self.level_tabs_dict[str(int(i/2))] = (
                     level_main_widget, level_main_Layout)
 
             # level scroll area
-            level_scroll_widget, level_scroll_Layout = \
-                self.make_scroll_area(name=f"lv{i}")
-
-            level_scroll_widget.setFrameStyle(0)
-            level_scroll_widget.setContentsMargins(0, 0, 0, 0)
-            level_main_Layout.addWidget(level_scroll_widget)
+            level_sec_layout, level_scroll_Layout = \
+                make_scroll_area(name=f"lv{i}")
+            level_main_Layout.addLayout(level_sec_layout)
             self.level_layout_list.append(level_scroll_Layout)
 
             level_spell_dict :dict = spell_dict[f"lv{i}"]
@@ -598,7 +783,7 @@ class CharacterSheet(QWidget):
         if self.edit_mode:
             remove_button :QPushButton = QPushButton("X")
             spell_layout.addWidget(remove_button, Qt.AlignLeft)
-            remove_button.clicked.connect(self.make_delete_func(spell_widget))
+            remove_button.clicked.connect(make_delete_func(spell_widget))
 
         spell_widget.setFixedHeight(spell_widget.sizeHint().height())
 
@@ -639,138 +824,6 @@ class CharacterSheet(QWidget):
 
             # return functions    
             return add_spell
-
-
-    # make ui function
-    def make_frame(self, name=None) -> QFrame:
-        """
-        make and return a QFrame 
-
-        :param name: name to give to the frame
-        """
-        # main widget and layout
-        main_widget :QFrame= QFrame()
-        main_widget.setFrameStyle(2)
-
-        main_layout :QVBoxLayout= QVBoxLayout()
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        main_widget.setLayout(main_layout)
-
-        # name widget
-        if name:
-            title :QLabel= QLabel(name)
-            main_layout.addWidget(title, alignment=Qt.AlignCenter)
-
-        # return main widget and layout
-        return main_widget, main_layout
-
-
-    def make_scroll_area(
-            self, 
-            name :str=None) -> QFrame :
-        """
-        make and return a QFrame containing a scroll area
-
-        :param name: name to give to the frame
-        :return main_widget: main frame widget
-        :return scroll_layout: layout of the scroll area
-        """
-        # create main widget, layout and label
-        main_widget :QFrame= QFrame()
-        main_widget.setFrameStyle(2)
-            
-        main_layout :QVBoxLayout= QVBoxLayout()
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        main_widget.setLayout(main_layout)
-        
-        # name widget
-        if name:
-            title :QLabel = QLabel(name)
-            main_layout.addWidget(title, alignment=Qt.AlignCenter)
-        
-        # competences scroll areay settings
-        scroll_area :QScrollArea = QScrollArea()
-        scroll_area.setMinimumHeight(200)
-        scroll_area.setFrameStyle(2)
-        
-        # competences widget
-        scroll_widget :QFrame = QFrame()
-        scroll_area.setWidget(scroll_widget)
-        scroll_area.setWidgetResizable(True)
-        main_layout.addWidget(scroll_area)
-        
-        # competences layout
-        scroll_layout :QVBoxLayout = QVBoxLayout()
-        scroll_widget.setLayout(scroll_layout)
-
-        # return scroll area main widget and scroll layout
-        return main_widget, scroll_layout
-
-
-    # delete ui function
-    def make_delete_func(self, widget :QWidget):
-        """
-        make and return a function to delete given widget
-
-        :param widget: widget to detete
-        :return delete_func: fuction to delete xidget
-        """
-        def delete_func():
-            widget.deleteLater()
-
-        return delete_func
-
-
-    # switch mode
-    def switch_mode_ui(self):
-        """
-        make switch menu bar to switch modes
-        """
-        # create main widget
-        if self.edit_mode:
-            current_mode = "edit"
-        elif self.player_mode:
-            current_mode = "player"
-        else:
-            current_mode = "read"
-        
-        self.switch_mode_widget :QPushButton = QPushButton(current_mode)
-
-        # create menu
-        self.switch_mode_menu :QMenu = QMenu("mode")
-        self.menu_bar.addMenu(self.switch_mode_menu)
-
-        # create menu option
-        for mode in self.mode_list:
-            self.switch_mode_menu.addAction(mode, self.make_switch_action(mode))
-            # self.switch_mode_menu.addSeparator()
-
-
-    def make_switch_action(self, mode:str) -> Callable:
-        """
-        make and return a function to switch mode
-
-        :param mode: mode to switch to
-        :return switch_mode: function to switch mode
-        """
-        def switch_mode():
-            if mode == "edit":
-                self.edit_mode = True
-                self.player_mode = False
-            elif mode == "player":
-                self.edit_mode = False
-                self.player_mode = True
-            else:
-                self.edit_mode = False
-                self.player_mode = False
-
-            for i in range(self.main_layout.count()):
-                self.main_layout.itemAt(i).widget().deleteLater()
-
-            self.make_ui()
-            self.resize(self.sizeHint())
-
-        return switch_mode
 
 
 class AddInfo(QDialog):
@@ -820,6 +873,84 @@ class AddInfo(QDialog):
 
     def return_value(self):
         self.accept()
+
+
+def make_frame(name=None) -> QFrame:
+    """
+    make and return a QFrame 
+
+    :param name: name to give to the frame
+    """
+    # main widget and layout
+    # main_widget :QFrame= QFrame()
+    # main_widget.setFrameStyle(2)
+
+    main_layout :QVBoxLayout= QVBoxLayout()
+    main_layout.setContentsMargins(5, 5, 5, 5)
+    # main_widget.setLayout(main_layout)
+
+    # name widget
+    if name:
+        title :QLabel= QLabel(name)
+        main_layout.addWidget(title, alignment=Qt.AlignCenter)
+
+    # return main widget and layout
+    # return main_widget, main_layout
+    return main_layout
+
+
+def make_scroll_area(name :str=None) -> QFrame :
+    """
+    make and return a QFrame containing a scroll area
+
+    :param name: name to give to the frame
+    :return main_widget: main frame widget
+    :return scroll_layout: layout of the scroll area
+    """
+    # create main widget, layout and label
+    # main_widget :QFrame= QFrame()
+    # main_widget.setFrameStyle(2)
+            
+    main_layout :QVBoxLayout= QVBoxLayout()
+    main_layout.setContentsMargins(5, 5, 5, 5)
+    # main_widget.setLayout(main_layout)
+        
+    # name widget
+    if name:
+        title :QLabel = QLabel(name)
+        main_layout.addWidget(title, alignment=Qt.AlignCenter)
+        
+    # competences scroll areay settings
+    scroll_area :QScrollArea = QScrollArea()
+    scroll_area.setMinimumHeight(200)
+    scroll_area.setFrameStyle(2)
+        
+    # competences widget
+    scroll_widget :QFrame = QFrame()
+    scroll_area.setWidget(scroll_widget)
+    scroll_area.setWidgetResizable(True)
+    main_layout.addWidget(scroll_area)
+        
+    # competences layout
+    scroll_layout :QVBoxLayout = QVBoxLayout()
+    scroll_widget.setLayout(scroll_layout)
+
+    # return scroll area main widget and scroll layout
+    # return main_widget, main_layout, scroll_layout
+    return main_layout, scroll_layout
+
+
+def make_delete_func(widget :QWidget):
+    """
+    make and return a function to delete given widget
+
+    :param widget: widget to detete
+    :return delete_func: fuction to delete xidget
+    """
+    def delete_func():
+        widget.deleteLater()
+
+    return delete_func
 
 
 ################################################################################
