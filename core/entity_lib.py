@@ -1,4 +1,4 @@
-import json
+# import json
 
 from core.database.database_lib import (create_table, replace_row, 
                                    replace_value, return_single_data, 
@@ -57,8 +57,8 @@ class PlayableCharacter(Entity):
 
 
     def new_character(self):
+        self.open_character(0)
         self.character_id = int(PlayableCharacter.character_count)
-        self.save_character()
 
 
     def open_character(self, character_id :int):
@@ -270,3 +270,7 @@ test.spells = {
     }
 
 test.save_character()"""
+
+# test = PlayableCharacter()
+# test.open_character(0)
+# print(json.dumps(test.spells, indent=4))
