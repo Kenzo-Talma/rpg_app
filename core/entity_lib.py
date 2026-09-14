@@ -1,4 +1,4 @@
-# import json
+import json
 
 from core.database.database_lib import (create_table, replace_row, 
                                    replace_value, return_single_data, 
@@ -56,11 +56,6 @@ class PlayableCharacter(Entity):
             return_single_column("DnD", "character_table", "character_id"))
 
 
-    def new_character(self):
-        self.open_character(0)
-        self.character_id = int(PlayableCharacter.character_count)
-
-
     def open_character(self, character_id :int):
         table_info :list = ("DnD", "character_table")
         id_info_list :list = ["character_id", character_id]
@@ -93,6 +88,20 @@ class PlayableCharacter(Entity):
                 setattr(self, data, data_value)
 
 
+        # if character id = 0 increment to find the free id 
+        if self.character_id == 0:
+            id_list :list = return_single_column(
+                "DnD", "character_table", "character_id")
+            id_value :int = 0
+
+            id_list = [id_tuple[0] for id_tuple in id_list]
+            
+            while str(id_value) in id_list:
+                id_value += 1
+
+            self.character_id = id_value
+
+
     def save_character(self):
         character_dict :dict= dict()
 
@@ -119,40 +128,19 @@ class PlayableCharacter(Entity):
             info_value)
         
 
+def return_template():
+    template_file = open(
+        "{}\\DnD_character_template.json".format(__file__.rpartition("\\")[0]),
+        "r")
+
+    template_list :list = json.load(template_file)
+
+    return template_list
+
 
 ################################################################################
 # test
 ################################################################################
-
-def return_template():
-    return [
-        "character_id",
-        "entity_type",
-        "entity_name",
-        "character_class",
-        "character_specie",
-        "size",
-        "alignment",
-        "description",
-        "entity_HP",
-        "temp_HP",
-        "initiative",
-        "speed",
-        "class_armor",
-        "inspiration",
-        "strenght",
-        "dexterity",
-        "constitution",
-        "intelligence",
-        "wisdom",
-        "charisma",
-        "competences",
-        "money",
-        "equipment",
-        "spells"
-    ]
-
-# raise TypeError
 
 """test = PlayableCharacter()
 test.entity_name = "new character"
@@ -274,3 +262,5 @@ test.save_character()"""
 # test = PlayableCharacter()
 # test.open_character(0)
 # print(json.dumps(test.spells, indent=4))
+
+# return_template()

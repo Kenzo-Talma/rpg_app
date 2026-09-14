@@ -5,14 +5,13 @@ from PySide6.QtCore import Qt
 from typing import Callable
 
 from core.entity_lib import PlayableCharacter
-from core.database.database_lib import return_single_column
+from core.database.database_lib import return_single_column, return_single_data, delete_row
 
 
 class CharacterSheet(QWidget):
     def __init__(self):
         self.character_id :int = 0
         self.character :PlayableCharacter = PlayableCharacter()
-        self.character.open_character(0)
 
         super().__init__()
         self.edit_mode :bool = False
@@ -29,6 +28,7 @@ class CharacterSheet(QWidget):
 
         # open character dialog
         self.call_open_character_ui()
+        self.character.open_character(self.character_id)
 
         # create ui
         self.make_ui()
@@ -39,6 +39,8 @@ class CharacterSheet(QWidget):
     def open_character_sheet(self):
         self.character :PlayableCharacter = PlayableCharacter()
         self.character.open_character(self.character_id)
+
+        self.character_id = self.character.character_id
 
     # make_ui
     def make_ui(self):
@@ -178,6 +180,15 @@ class CharacterSheet(QWidget):
         
         self.switch_character_menu.addAction(
             "open_character", self.call_open_character_ui)
+
+        self.switch_character_menu.addAction(
+            "save character", self.save_character)
+
+        self.switch_character_menu.addAction(
+                    "duplicate character", self.save_character_as)
+
+        self.switch_character_menu.addAction(
+                            "delete character", self.delete_character)
         
         self.open_character_sheet()
         self.redraw_ui()
@@ -186,6 +197,37 @@ class CharacterSheet(QWidget):
     def call_open_character_ui(self):
         open_character :OpenCharacter = OpenCharacter(parent_widget=self)
         open_character.exec_()
+
+        self.character.open_character(self.character_id)
+
+        self.redraw_ui()
+
+
+    def save_character(self):
+        self.character.save_character()
+
+
+    def save_character_as(self):
+        id_list :list = return_single_column(
+            "DnD", "character_table", "character_id")
+        id_value :int = 0
+
+        id_list = [id_tuple[0] for id_tuple in id_list]
+            
+        while str(id_value) in id_list:
+            id_value += 1
+
+        self.character.character_id = id_value
+        self.character_id = self.character.character_id
+
+        self.save_character()
+
+
+    def delete_character(self):
+        delete_row(
+            "DnD", "character_table", ["character_id", self.character_id])
+        self.character.open_character(0)
+        self.redraw_ui()
 
 
 class IdentityWidget(QFrame):
@@ -228,7 +270,7 @@ class IdentityWidget(QFrame):
             # name label
             name_label :QLineEdit = QLineEdit(self.character.entity_name)
             name_label.textChanged.connect(
-                make_line_edit_func(name_label, self.character, "name"))
+                make_line_edit_func(name_label, self.character, "entity_name"))
             self.identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
 
             # other data line edit in edit mode
@@ -402,8 +444,8 @@ class StatWidget(QFrame):
             # stat value
             if self.edit_mode or self.player_mode:
                 stat_value :QSpinBox = QSpinBox()
-                stat_value.valueChanged.connect(make_spin_box_func(
-                    stat_value, self.character, stat))
+                stat_value.valueChanged.connect(self.make_stat_spin_box(
+                    stat_value, stat))
                 stat_value.setValue(self.character.stat_dict[stat])
             else:
                 stat_value :QLabel = QLabel(str(self.character.stat_dict[stat]))
@@ -411,6 +453,22 @@ class StatWidget(QFrame):
 
             # add stat frame to main stat sheet
             self.stat_sheet_layout.addWidget(stat_widget)
+
+
+    def make_stat_spin_box(
+            self,
+            spin_box :QSpinBox, 
+            stat :str) -> Callable:
+        """
+        create a function to connect ui lineEdit and character info
+
+        :param spin_box: spin to connect
+        :param info: attribute to connect
+        """
+        def stat_spin_box_func():
+            self.character.stat_dict[stat] = spin_box.value()
+
+        return stat_spin_box_func
 
 
 class CompetenceWidget(QFrame):
@@ -459,9 +517,8 @@ class CompetenceWidget(QFrame):
                 competence_value.setValue(
                     self.character.competences[competence])
                 competence_value.valueChanged.connect(
-                    make_spin_box_func(
-                        competence_value, 
-                        self.character, 
+                    self.make_change_competence(
+                        competence_value,
                         competence))
             else:
                 competence_value :QLabel = QLabel(
@@ -471,6 +528,14 @@ class CompetenceWidget(QFrame):
             # set widget size
             competence_widget.setFixedHeight(
                 competence_widget.sizeHint().height())
+
+
+    def make_change_competence(
+            self, spin_box :QSpinBox, competence :str) -> Callable:
+        def change_competence_value():
+            self.character.competences[competence] = spin_box.value()
+
+        return change_competence_value
 
 
 class EquipementWidget(QFrame):
@@ -519,11 +584,10 @@ class EquipementWidget(QFrame):
                 currency_value :QSpinBox = QSpinBox()
                 currency_layout.addWidget(currency_value)
                 currency_value.valueChanged.connect(
-                    make_spin_box_func(
-                        currency_value, 
-                        self.character,
+                    self.make_change_currency(
+                        currency_value,
                         currency))
-                currency_value.setValue = (self.character.money[currency])
+                currency_value.setValue(self.character.money[currency])
             else:
                 currency_value :QLabel = QLabel(
                     str(self.character.money[currency]))
@@ -655,6 +719,13 @@ class EquipementWidget(QFrame):
         return remove_equipement
 
 
+    def make_change_currency(self, spin_box :QSpinBox, currency :str):
+        def change_currency_value():
+            self.character.money[currency] = spin_box.value()
+
+        return change_currency_value
+
+
 class SpellWidget(QFrame):
     def __init__(
             self,
@@ -734,8 +805,9 @@ class SpellWidget(QFrame):
                 level_add_button :QPushButton = QPushButton("add")
                 level_add_button.clicked.connect(
                     self.make_add_spell(
+                        f"lv{i}",
                         level_scroll_Layout,
-                        "level"
+                        "name",
                         "effect",
                         "description",
                     ))
@@ -875,9 +947,9 @@ class SpellWidget(QFrame):
                 # make spell row
                 new_spell_widget :QWidget = self.make_spell_row(
                     value_dict["name"],
+                    spell_level,
                     value_dict["effect"],
-                    value_dict["description"]
-                )
+                    value_dict["description"])
 
                 # add spell to character dict
                 self.character.spells[spell_level][value_dict["name"]] = {
@@ -912,6 +984,7 @@ class DescriptionUi(QDialog):
         super().__init__(parent=parent_widget)
 
         self.main_layout :QVBoxLayout= QVBoxLayout()
+        self.setLayout(self.main_layout)
 
         self.description_layout :QLabel = QLabel()
         self.main_layout.addWidget(self.description_layout)
@@ -976,21 +1049,26 @@ class OpenCharacter(QDialog):
             self.setLayout(self.main_layout)
 
             self.id_list = return_single_column(
-                "DnD", "character_table", "character_id")[0]
+                "DnD", "character_table", "character_id")
 
             for id in self.id_list:
-                character = PlayableCharacter()
-                character.open_character(id)
-                self.make_character_widget(character)
+                character_id = id[0]
+                character_name = return_single_data(
+                    "DnD", 
+                    "character_table", 
+                    "entity_name", 
+                    ["character_id", int(character_id)])
+
+                self.make_character_widget(character_id, character_name)
 
 
-    def make_character_widget(self, character :PlayableCharacter):
-        character_widget :QPushButton = QPushButton(character.entity_name)
+    def make_character_widget(self, character_id :str, character_name :str):
+        character_widget :QPushButton = QPushButton(character_name)
         character_widget.clicked.connect(
-            self.make_open_func(character.character_id))
+            self.make_open_func(character_id))
         self.main_layout.addWidget(character_widget)
 
-    def make_open_func(self, character_id :int):
+    def make_open_func(self, character_id :str):
         def open_func() -> Callable:
             self.parent_widget.character_id = character_id
             self.accept()
@@ -1086,7 +1164,7 @@ def make_line_edit_func(
     :param info: attribute to connect
     """
     def line_edit_func():
-        setattr(character, attribute, line_edit.text)
+        setattr(character, attribute, line_edit.text())
 
     return line_edit_func
 

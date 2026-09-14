@@ -1,6 +1,4 @@
 import sqlite3
-import os
-import json
 
 
 def connect_database(file_name :str):
@@ -52,9 +50,6 @@ def create_table(
     else:
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ({info})")
 
-    # cursor.execute(f"SELECT * FROM {table_name}")
-    # print(cursor.fetchall(), type(cursor.fetchall()))
-
     # commit and close connection
     connector.commit()
     connector.close()
@@ -103,6 +98,7 @@ def return_single_row(file_name :str, table_name :str, row_id :int):
     # return value
     return row_data
 
+
 def return_single_data(
         file_name :str, table_name :str, 
         column_name :str, row_id :list[:str, :int]):
@@ -147,8 +143,24 @@ def add_row(file_name :str, table_name : str, entity :dict):
     # execute sql statement
     cursor.execute(sql, row_list)
 
-    # cursor.execute(f"SELECT * FROM {table_name}")
-    # print(cursor.fetchall(), type(cursor.fetchall()))
+    # commit and close connection
+    connector.commit()
+    connector.close()
+
+
+def delete_row(file_name :str, table_name :str, id_list :list[str, str]):
+    # connect to database
+    connector, cursor = connect_database(file_name)
+
+    # sql statement
+    sql :str= "DELETE FROM {} " \
+              "WHERE {}=?".format(
+                        table_name,
+                        id_list[0]
+                    )
+
+    # execute sql statement
+    cursor.execute(sql, str(id_list[1]))
 
     # commit and close connection
     connector.commit()
@@ -166,15 +178,21 @@ def replace_row(file_name :str, table_name :str, value_dict :dict):
     # connect to database
     connector, cursor = connect_database(file_name)
 
-
     # get info to add to the table
     row_entry :list = [str(key) for key in value_dict]
     row_list :list = [str(value_dict[key]) for key in value_dict]
 
-    # make sql statement
+    # delete row
+    row_id = next(iter(value_dict))
+    delete_row(
+        file_name, 
+        table_name,
+        [row_id, value_dict[row_id]]
+    )
 
+    # add row
     sql :str = "REPLACE INTO {} ({}) " \
-                "VALUES ({})".format(
+               "VALUES ({})".format(
             table_name, 
             ",".join(row_entry),
             "?, "*(len(row_list)-1)+"?"
@@ -295,14 +313,3 @@ def test_data():
 
     connector.commit()
     connector.close()
-
-
-"""create_table("DnD", "test1", get_template(1), force=True)
-create_table("DnD", "test2", get_template(2), force=False)
-add_row("DnD", "test1", get_data(1))
-add_row("DnD", "test2", get_data(2))"""
-
-"""print(return_table("DnD", "character_table"))
-print(return_single_column("DnD", "character_table", "charisma"))
-print(return_single_row("DnD", "character_table", 0))
-print(return_single_data("DnD", "character_table", "charisma", ["entity_id", 0]))"""
