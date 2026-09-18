@@ -30,6 +30,7 @@ class PlayableCharacter(Entity):
         super().__init__("DnD")
 
         self.character_id :int = int()
+        self.character_level :int = int()
         self.stat_dict :dict = dict
         self.character_class :str = str()
         self.character_specie :str = str()
@@ -261,6 +262,10 @@ test.save_character()"""
 
 # test = PlayableCharacter()
 # test.open_character(0)
-# print(json.dumps(test.spells, indent=4))
+# test.character_level = 1
+# test.character_id = 0
+# create_table("DnD", "character_table", return_template(), force=True)
+# test.save_character()
+# print(json.dumps(test.character_level, indent=4))
 
 # return_template()

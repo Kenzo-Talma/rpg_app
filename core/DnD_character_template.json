@@ -1,5 +1,6 @@
 [
     "character_id",
+    "character_level",
     "entity_type",
     "entity_name",
     "character_class",

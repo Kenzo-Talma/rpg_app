@@ -273,6 +273,20 @@ class IdentityWidget(QFrame):
                 make_line_edit_func(name_label, self.character, "entity_name"))
             self.identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
 
+            # level label
+            level_layout :QHBoxLayout = QHBoxLayout()
+            self.identity_layout.addLayout(
+                level_layout)
+            
+            level_label :QLabel = QLabel("level :")
+            level_layout.addWidget(level_label, alignment=Qt.AlignCenter)
+            
+            level_spin_box :QSpinBox = QSpinBox()
+            level_spin_box.setValue(int(self.character.character_level))
+            level_spin_box.valueChanged.connect(make_spin_box_func(
+                level_spin_box, self.character, "character_level"))
+            level_layout.addWidget(level_spin_box, alignment=Qt.AlignCenter)
+
             # other data line edit in edit mode
             main_info_widget :QWidget = QWidget()
             self.identity_layout.addWidget(main_info_widget)
@@ -293,6 +307,10 @@ class IdentityWidget(QFrame):
             # name label
             name_label :QLabel = QLabel(self.character.entity_name)
 
+            # level label
+            level_label :QLabel = QLabel(
+                f"level : {self.character.character_level}")
+
             # info label in non edit mode and read mode
             info_list :list = [
                 getattr(self.character, self.identity_dict[key])
@@ -304,6 +322,7 @@ class IdentityWidget(QFrame):
 
             # add name and infos to identity layout
             self.identity_layout.addWidget(name_label, alignment=Qt.AlignCenter)
+            self.identity_layout.addWidget(level_label, alignment=Qt.AlignCenter)
             self.identity_layout.addWidget(main_info_label, alignment=Qt.AlignCenter)
 
 
@@ -996,6 +1015,8 @@ class AddInfo(QDialog):
         super().__init__(parent=parent)
 
         self.value_dict = value_dict
+        self.setStyleSheet("background-color: #3d3d3d;" \
+                           "color: #b5b5b5")
 
         self.make_ui()
 
@@ -1042,24 +1063,28 @@ class AddInfo(QDialog):
 
 class OpenCharacter(QDialog):
     def __init__(self, parent_widget :CharacterSheet):
-            self.parent_widget = parent_widget
-            super().__init__(parent=parent_widget)
+        self.parent_widget = parent_widget
+        super().__init__(parent=parent_widget)
+
+        self.setStyleSheet("background-color: #3d3d3d;" \
+                       "color: #b5b5b5")
+
             
-            self.main_layout :QHBoxLayout = QHBoxLayout()
-            self.setLayout(self.main_layout)
+        self.main_layout :QHBoxLayout = QHBoxLayout()
+        self.setLayout(self.main_layout)
 
-            self.id_list = return_single_column(
-                "DnD", "character_table", "character_id")
+        self.id_list = return_single_column(
+            "DnD", "character_table", "character_id")
 
-            for id in self.id_list:
-                character_id = id[0]
-                character_name = return_single_data(
-                    "DnD", 
-                    "character_table", 
-                    "entity_name", 
-                    ["character_id", int(character_id)])
+        for id in self.id_list:
+            character_id = id[0]
+            character_name = return_single_data(
+                "DnD", 
+                "character_table", 
+                "entity_name", 
+                ["character_id", int(character_id)])
 
-                self.make_character_widget(character_id, character_name)
+            self.make_character_widget(character_id, character_name)
 
 
     def make_character_widget(self, character_id :str, character_name :str):
