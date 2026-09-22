@@ -1,27 +1,113 @@
-[
-    "character_id",
-    "character_level",
-    "entity_type",
-    "entity_name",
-    "character_class",
-    "character_specie",
-    "size",
-    "alignment",
-    "description",
-    "entity_HP",
-    "temp_HP",
-    "initiative",
-    "speed",
-    "class_armor",
-    "inspiration",
-    "strenght",
-    "dexterity",
-    "constitution",
-    "intelligence",
-    "wisdom",
-    "charisma",
-    "competences",
-    "money",
-    "equipment",
-    "spells"
-]
+{
+    "character_id": 0,
+    "character_level": 1,
+    "entity_type": "character",
+    "entity_name": "new character",
+    "character_class": "fighter",
+    "character_specie": "tiefling",
+    "size": "M",
+    "alignment": "true neutral",
+    "description": "describe your character",
+    "entity_HP": 10,
+    "temp_HP": 0,
+    "initiative": 0,
+    "speed": 30,
+    "class_armor": 10,
+    "inspiration": 0,
+    "strenght": 10,
+    "dexterity": 10,
+    "constitution": 10,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 10,
+    "competences": {
+        "acrobacies": 0,
+        "acrane": 0,
+        "athletisme": 0,
+        "stealth": 0,
+        "animal handling": 0,
+        "slight of hand": 0,
+        "history": 0,
+        "intimidation": 0,
+        "intuition": 0,
+        "investigation": 0,
+        "medecine": 0,
+        "nature": 0,
+        "perception": 0,
+        "persuasion": 0
+    },
+    "money": {
+            "platinium": 0,
+            "gold": 0,
+            "silver": 0,
+            "copper": 0
+        },
+    "equipment": {
+        "short sword": ["damage 1d8"],
+        "knife": ["damage 1d6", "poisonous"],
+        "rope": null,
+        "healing potion": ["heal 2d8"]
+    },
+    "spells": {
+        "lv0": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv1": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv2": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv3": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv4": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv5": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv6": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv7": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv8": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        },
+        "lv9": {
+            "test 1": {
+                "effect": "hello",
+                "description": "The quick brown fox jumps over the lazy dog"
+            }
+        }
+    }
+}

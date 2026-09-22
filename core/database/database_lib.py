@@ -8,11 +8,8 @@ def connect_database(file_name :str):
     :param file_name(str): name of given database
     :return: database's connection and cursor
     """
-    # get current path
-    current_path :str = __file__.rpartition("\\")[0]
-
     # connect to database and create cursor
-    connector = sqlite3.connect(f"{current_path}\\{file_name}_BDD.db")
+    connector = sqlite3.connect(file_name)
     cursor = connector.cursor()
 
     # return conection and cursor

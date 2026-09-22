@@ -6,8 +6,8 @@ from core.database.database_lib import (create_table, replace_row,
 
 
 class Entity():
-    def __init__(self, data_base_location):
-        self.data_base_location :str = data_base_location
+    def __init__(self, database_location :str):
+        self.data_base_location :str = database_location
         self.entity_name :str = str()
         self.entity_type :str = str()
         self.size :str = str()
@@ -17,8 +17,10 @@ class Entity():
         self.temp_HP:int = int()
         self.description :str = str()
 
+
     def take_damage(self, damage_value :int):
         self.entity_HP -= damage_value
+
 
     def heal(self, heal_value :int):
         self.entity_HP += heal_value
@@ -26,12 +28,19 @@ class Entity():
     
 class PlayableCharacter(Entity):
     character_count :int = int()
-    def __init__(self):
-        super().__init__("DnD")
+    def __init__(self, database_location :str):
+        super().__init__(database_location=database_location)
 
         self.character_id :int = int()
         self.character_level :int = int()
-        self.stat_dict :dict = dict
+        self.stat_dict :dict = {
+            "strenght": 10,
+            "dexterity": 10,
+            "constitution": 10,
+            "intelligence": 10,
+            "wisdom": 10,
+            "charisma": 10,
+        }
         self.character_class :str = str()
         self.character_specie :str = str()
         self.alignment :str = str()
@@ -42,23 +51,38 @@ class PlayableCharacter(Entity):
         self.equipment :dict = dict()
         self.spells :dict = dict()
 
+        self.count_saved_characters()
+
+        character_template = return_template()
         create_table(
-            self.data_base_location,
-            "character_table",
-            return_template(),
-            force=False)
+                    self.data_base_location,
+                    "character_table",
+                    list(character_template),
+                    force=False)
+
+        if PlayableCharacter.character_count == 0:
+            for data in character_template:
+                if not data in self.stat_dict:
+                    setattr(self, data, character_template[data])
+                else:
+                    self.stat_dict[data] = character_template[data]
+
+            self.save_character()
 
         self.count_saved_characters()
 
-
+            
     @staticmethod
     def count_saved_characters():
-        PlayableCharacter.character_count = len(
-            return_single_column("DnD", "character_table", "character_id"))
+        try:
+            PlayableCharacter.character_count = len(
+                return_single_column("DnD", "character_table", "character_id"))
+        except Exception as e:
+            PlayableCharacter.character_count = 0
 
 
     def open_character(self, character_id :int):
-        table_info :list = ("DnD", "character_table")
+        table_info :list = (self.data_base_location, "character_table")
         id_info_list :list = ["character_id", character_id]
 
         self.stat_dict = {
@@ -92,7 +116,7 @@ class PlayableCharacter(Entity):
         # if character id = 0 increment to find the free id 
         if self.character_id == 0:
             id_list :list = return_single_column(
-                "DnD", "character_table", "character_id")
+                self.data_base_location, "character_table", "character_id")
             id_value :int = 0
 
             id_list = [id_tuple[0] for id_tuple in id_list]
@@ -101,6 +125,8 @@ class PlayableCharacter(Entity):
                 id_value += 1
 
             self.character_id = id_value
+
+        print(self.character_id)
 
 
     def save_character(self):
@@ -129,12 +155,12 @@ class PlayableCharacter(Entity):
             info_value)
         
 
-def return_template():
+def return_template() -> dict:
     template_file = open(
         "{}\\DnD_character_template.json".format(__file__.rpartition("\\")[0]),
         "r")
 
-    template_list :list = json.load(template_file)
+    template_list :dict = json.load(template_file)
 
     return template_list
 

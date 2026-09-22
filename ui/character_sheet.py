@@ -9,9 +9,10 @@ from core.database.database_lib import return_single_column, return_single_data,
 
 
 class CharacterSheet(QWidget):
-    def __init__(self):
+    def __init__(self, data_path):
+        self.data_path = data_path
         self.character_id :int = 0
-        self.character :PlayableCharacter = PlayableCharacter()
+        self.character :PlayableCharacter = PlayableCharacter(self.data_path)
 
         super().__init__()
         self.edit_mode :bool = False
@@ -37,7 +38,7 @@ class CharacterSheet(QWidget):
 
 
     def open_character_sheet(self):
-        self.character :PlayableCharacter = PlayableCharacter()
+        self.character :PlayableCharacter = PlayableCharacter(self.data_path)
         self.character.open_character(self.character_id)
 
         self.character_id = self.character.character_id
@@ -1074,12 +1075,12 @@ class OpenCharacter(QDialog):
         self.setLayout(self.main_layout)
 
         self.id_list = return_single_column(
-            "DnD", "character_table", "character_id")
+            self.parent_widget.data_path, "character_table", "character_id")
 
         for id in self.id_list:
             character_id = id[0]
             character_name = return_single_data(
-                "DnD", 
+                self.parent_widget.data_path, 
                 "character_table", 
                 "entity_name", 
                 ["character_id", int(character_id)])
